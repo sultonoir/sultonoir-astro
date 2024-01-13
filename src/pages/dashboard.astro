@@ -1,5 +1,14 @@
 ---
 import Base from "../layout/Base.astro";
+import { supabase } from "../lib/supabase";
+import { Reviews, type GuestbookEntry } from "../components/Reviews";
+
+const { email } = Astro.locals;
+
+const { data } = (await supabase
+  .from("guestbook")
+  .select("name, message")
+  .order("created_at", { ascending: false })) as { data: GuestbookEntry[] };
 ---
 
 <Base title="Dashboard">
@@ -7,6 +16,7 @@ import Base from "../layout/Base.astro";
     <p
       class="max-w-prose text-xl text-indigo-600 dark:text-indigo-400 font-semibold"
     >
+      {email}
     </p>
     <p class="max-w-prose text-lg mb-2 dark:text-zinc-100">
       This is a protected page. You can only see this if you are logged in.
@@ -14,7 +24,8 @@ import Base from "../layout/Base.astro";
     <a
       href="/api/auth/signout"
       class="mb-10 bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 px-3 py-1 rounded-md"
-      >Sign out api</a
+      >Sign out</a
     >
+    <Reviews reviews={data} client:idle />
   </section>
 </Base>

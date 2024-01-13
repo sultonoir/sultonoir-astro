@@ -1,16 +1,12 @@
 import { defineConfig } from "astro/config";
 import vercel from "@astrojs/vercel/serverless";
-import react from "@astrojs/react";
 import tailwind from "@astrojs/tailwind";
+import solidJs from "@astrojs/solid-js";
 
 // https://astro.build/config
 export default defineConfig({
-  output: "hybrid",
+  site: "https://astro-supabase-auth.vercel.app",
+  output: "server",
   adapter: vercel(),
-  integrations: [
-    react(),
-    tailwind({
-      applyBaseStyles: false,
-    }),
-  ],
+  integrations: [tailwind(), solidJs()],
 });

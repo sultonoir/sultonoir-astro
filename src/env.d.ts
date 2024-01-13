@@ -4,10 +4,3 @@ declare namespace App {
     email: string;
   }
 }
-interface ImportMetaEnv {
-  readonly JWT_SECRET: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}

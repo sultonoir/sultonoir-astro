@@ -1,56 +1,54 @@
 import type { APIRoute } from "astro";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
-import { xata } from "@lib/xata";
-
-const MAX_AGE = 60 * 60 * 24 * 30; // days;
+import { supabase } from "../../../lib/supabase";
+import type { Provider } from "@supabase/supabase-js";
 
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const formData = await request.formData();
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
+  const provider = formData.get("provider")?.toString();
+
+  if (provider) {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: provider as Provider,
+      options: {
+        redirectTo: import.meta.env.DEV
+          ? "http://localhost:4321/api/auth/callback"
+          : "https://astro-supabase-auth.vercel.app/api/auth/callback",
+      },
+    });
+
+    if (error) {
+      return new Response(error.message, { status: 500 });
+    }
+
+    return redirect(data.url);
+  }
 
   if (!email || !password) {
     return new Response("Email and password are required", { status: 400 });
   }
 
-  const user = await xata.db.User.filter({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
-  }).getFirst();
-
-  if (!user) {
-    return new Response("user not found", { status: 400 });
-  }
-
-  const isCorrectPassword = await bcrypt.compare(
     password,
-    user.hashedPassword as string
-  );
-
-  if (!isCorrectPassword) {
-    return new Response("Wrong password", { status: 400 });
-  }
-
-  const secret = import.meta.env.JWT_SECRET;
-
-  const token = jwt.sign(
-    {
-      id: user.id,
-      name: user.name,
-    },
-    secret,
-    {
-      expiresIn: MAX_AGE,
-    }
-  );
-
-  cookies.set("session", token, {
-    sameSite: "strict",
-    httpOnly: true,
-    path: "/",
-    secure: true,
-    maxAge: MAX_AGE,
   });
 
-  return redirect("/");
+  if (error) {
+    return new Response(error.message, { status: 500 });
+  }
+
+  const { access_token, refresh_token } = data.session;
+  cookies.set("sb-access-token", access_token, {
+    sameSite: "strict",
+    path: "/",
+    secure: true,
+  });
+  cookies.set("sb-refresh-token", refresh_token, {
+    sameSite: "strict",
+    path: "/",
+    secure: true,
+  });
+
+  return redirect("/dashboard");
 };
